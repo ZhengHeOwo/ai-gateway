@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -10,7 +9,7 @@ import (
 )
 
 const (
-	defaultUpstreamTimeout = 300 * time.Second
+	defaultUpstreamTimeout = 60 * time.Second
 	defaultListenAddress   = ":8080"
 )
 
@@ -26,35 +25,29 @@ type UpstreamConfig struct {
 }
 
 func Load() (Config, error) {
-	var errs []error
-
 	listenAddress, err := loadListenAddress()
 	if err != nil {
-		errs = append(errs, err)
+		return Config{}, err
 	}
 
 	baseURLValue, err := requiredEnv("UPSTREAM_BASE_URL")
 	if err != nil {
-		errs = append(errs, err)
+		return Config{}, err
 	}
 
 	baseURL, err := normalizeBaseURL(baseURLValue)
 	if err != nil {
-		errs = append(errs, err)
+		return Config{}, err
 	}
 
 	apiKey, err := requiredEnv("UPSTREAM_API_KEY")
 	if err != nil {
-		errs = append(errs, err)
+		return Config{}, err
 	}
 
 	timeout, err := loadUpstreamTimeout()
 	if err != nil {
-		errs = append(errs, err)
-	}
-
-	if len(errs) > 0 {
-		return Config{}, errors.Join(errs...)
+		return Config{}, err
 	}
 
 	return Config{
@@ -82,10 +75,7 @@ func loadListenAddress() (string, error) {
 
 func requiredEnv(name string) (string, error) {
 	value, exists := os.LookupEnv(name)
-
-	value = strings.TrimSpace(value)
-
-	if !exists || value == "" {
+	if !exists || strings.TrimSpace(value) == "" {
 		return "", fmt.Errorf("%s 是必填项", name)
 	}
 
@@ -112,16 +102,16 @@ func normalizeBaseURL(value string) (string, error) {
 		return "", fmt.Errorf(" URL 缺少主机名")
 	}
 
-	if parsed.User != "" {
-		return "", fmt.Errorf(" URL 不得包含User信息: %s", parsed.User)
+	if parsed.User != nil {
+		return "", fmt.Errorf(" URL 不得包含User信息")
 	}
 
 	if parsed.RawQuery != "" || parsed.ForceQuery {
-		return "", fmt.Errorf(" URL 不得包含查询信息: %s", parsed.RawQuery)
+		return "", fmt.Errorf(" URL 不得包含查询信息")
 	}
 
-	if parsed.Fargment != "" {
-		return "", fmt.Errorf(" URL 不得包含片段: %s", parsed.Fargment)
+	if parsed.Fragment != "" {
+		return "", fmt.Errorf(" URL 不得包含片段: %s", parsed.Fragment)
 	}
 
 	parsed.Path = strings.TrimRight(parsed.Path, "/")
@@ -136,7 +126,8 @@ func loadUpstreamTimeout() (time.Duration, error) {
 		return defaultUpstreamTimeout, nil
 	}
 
-	if value = strings.TrimSpace("value"); value == "" {
+	value = strings.TrimSpace(value)
+	if value == "" {
 		return 0, fmt.Errorf("配置超时不得为零")
 	}
 
