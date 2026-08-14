@@ -113,7 +113,7 @@ func TestConfigLoad(t *testing.T) {
 		},
 		{
 			name:       "Timeout无法解析",
-			baseURL:    "http://",
+			baseURL:    "http://test.api.com",
 			timeout:    "10",
 			address:    ":8787",
 			apiKey:     "test-key",
@@ -122,7 +122,7 @@ func TestConfigLoad(t *testing.T) {
 		},
 		{
 			name:       "Timeout等于0",
-			baseURL:    "http://",
+			baseURL:    "http://test.api.com",
 			timeout:    "0s",
 			address:    ":8787",
 			apiKey:     "test-key",
@@ -131,7 +131,7 @@ func TestConfigLoad(t *testing.T) {
 		},
 		{
 			name:       "Timeout小于0",
-			baseURL:    "http://",
+			baseURL:    "http://test.api.com",
 			timeout:    "-1s",
 			address:    ":8787",
 			apiKey:     "test-key",
@@ -174,7 +174,7 @@ func TestConfigLoad(t *testing.T) {
 		},
 		{
 			name:       "BaseURL存在User",
-			baseURL:    "http://user:" + secret + "test.api.com",
+			baseURL:    "http://user:" + secret + "@test.api.com",
 			timeout:    "10s",
 			address:    ":8787",
 			apiKey:     "test-key",
@@ -185,16 +185,7 @@ func TestConfigLoad(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			switch tt.name {
-			case "缺失非必填配置":
-				specialRun(t, tt)
-			case "缺失baseURL":
-				specialRun(t, tt)
-			case "缺失apiKey":
-				specialRun(t, tt)
-			default:
-				ruleRun(t, tt)
-			}
+			ruleRun(t, tt)
 		})
 	}
 }
@@ -202,10 +193,25 @@ func TestConfigLoad(t *testing.T) {
 func ruleRun(t *testing.T, tt testLoadStruct) {
 	t.Helper()
 
-	t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
-	t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
-	t.Setenv("LISTEN_ADDRESS", tt.address)
-	t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
+	switch tt.name {
+	case "缺失非必填配置":
+		t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
+		t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
+	case "缺失BaseURL":
+		t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
+		t.Setenv("LISTEN_ADDRESS", tt.address)
+		t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
+	case "缺失APIKey":
+		t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
+		t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
+		t.Setenv("LISTEN_ADDRESS", tt.address)
+	default:
+		t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
+		t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
+		t.Setenv("LISTEN_ADDRESS", tt.address)
+		t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
+
+	}
 
 	result, err := Load()
 	if tt.wantErr {
@@ -233,49 +239,4 @@ func ruleRun(t *testing.T, tt testLoadStruct) {
 		t.Fatalf("want: %v, got: %v", tt.wantConfig, result)
 	}
 
-}
-
-// specialRun 用来测未设置的情况
-func specialRun(t *testing.T, tt testLoadStruct) {
-	t.Helper()
-
-	switch tt.name {
-	case "缺失非必填配置":
-		t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
-		t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
-	case "缺失baseURL":
-		t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
-		t.Setenv("LISTEN_ADDRESS", tt.address)
-		t.Setenv("UPSTREAM_API_KEY", tt.apiKey)
-	case "缺失apiKey":
-		t.Setenv("UPSTREAM_BASE_URL", tt.baseURL)
-		t.Setenv("UPSTREAM_TIMEOUT", tt.timeout)
-		t.Setenv("LISTEN_ADDRESS", tt.address)
-	default:
-		t.Fatalf("specialRun分支未兼容 %s 进入", tt.name)
-	}
-
-	result, err := Load()
-	if tt.wantErr {
-		if err == nil {
-			t.Fatal("期望出错, 实际为nil")
-		}
-
-		empty := Config{}
-		if !reflect.DeepEqual(result, empty) {
-			t.Fatalf("want: %v, got: %v", empty, result)
-		}
-
-		return
-	}
-
-	if err != nil {
-		t.Fatalf("期望正确, 实际Err: %v", err)
-	}
-
-	if !reflect.DeepEqual(result, tt.wantConfig) {
-		t.Fatalf("want: %v, got: %v", tt.wantConfig, result)
-	}
-
-	return
 }
