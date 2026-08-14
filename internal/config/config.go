@@ -84,34 +84,34 @@ func requiredEnv(name string) (string, error) {
 
 func normalizeBaseURL(value string) (string, error) {
 	if !strings.Contains(value, "://") {
-		return "", fmt.Errorf("URL 缺少协议")
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 缺少协议")
 	}
 
 	parsed, err := url.Parse(value)
 	if err != nil {
-		return "", fmt.Errorf(" URL 解析失败: %w", err)
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 格式无效")
 	}
 
 	parsed.Scheme = strings.ToLower(parsed.Scheme)
 
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", fmt.Errorf(" URL 使用错误协议: %s", parsed.Scheme)
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 使用错误协议: %s", parsed.Scheme)
 	}
 
 	if parsed.Hostname() == "" {
-		return "", fmt.Errorf(" URL 缺少主机名")
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 缺少主机名")
 	}
 
 	if parsed.User != nil {
-		return "", fmt.Errorf(" URL 不得包含User信息")
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 不得包含User信息")
 	}
 
 	if parsed.RawQuery != "" || parsed.ForceQuery {
-		return "", fmt.Errorf(" URL 不得包含查询信息")
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 不得包含查询信息")
 	}
 
 	if parsed.Fragment != "" {
-		return "", fmt.Errorf(" URL 不得包含片段: %s", parsed.Fragment)
+		return "", fmt.Errorf(" UPSTREAM_BASE_URL 不得包含片段")
 	}
 
 	parsed.Path = strings.TrimRight(parsed.Path, "/")
