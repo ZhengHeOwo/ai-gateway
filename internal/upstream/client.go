@@ -45,7 +45,7 @@ func (c *Client) Do(ctx context.Context, method string, path string, body []byte
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", "bearer "+c.apiKey)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -56,5 +56,5 @@ func (c *Client) Do(ctx context.Context, method string, path string, body []byte
 }
 
 func (c *Client) ChatCompletion(ctx context.Context, body []byte) (*http.Response, error) {
-	return c.Do(ctx, http.MethodPost, "/chat/completions", body)
+	return c.Do(ctx, http.MethodPost, "/v1/chat/completions", body)
 }
