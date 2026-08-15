@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -24,20 +25,20 @@ func NewClient(baseURL string, apiKey string, timeout time.Duration) (*Client, e
 		return nil, fmt.Errorf("apiKey不得为空")
 	}
 
-	if strings.TrimSpace(timeout) <= 0 {
+	if timeout <= 0 {
 		return nil, fmt.Errorf("超时必须大于零")
 	}
 	return &Client{
 		baseURL: baseURL,
 		apiKey:  apiKey,
 		httpClient: &http.Client{
-			timeout: timeout,
+			Timeout: timeout,
 		},
 	}, nil
 }
 
 func (c *Client) Do(ctx context.Context, method string, path string, body []byte) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("请求创建失败|Method: %s, Path: %s, Error: %w", method, path, err)
 	}
